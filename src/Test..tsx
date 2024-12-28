@@ -10,6 +10,10 @@ const InteractiveD3ChartWithNumbers = () => {
   const [rotationDegree, setRotationDegree] = useState(0);
   const [stretchFactor, setStretchFactor] = useState(1);
   const [curveDegree, setCurveDegree] = useState(0);
+  console.log(dotGroups);
+
+
+
 
 
   const baseDotSpacing = 30;
@@ -69,6 +73,8 @@ const InteractiveD3ChartWithNumbers = () => {
         selection.y = y < selection.y ? y : selection.y;
 
         // Update the selection box
+        console.log(selection, "selection is ");
+
         svg
           .select(".selection")
           .attr("x", selection.x)
@@ -142,10 +148,10 @@ const InteractiveD3ChartWithNumbers = () => {
       if (isSelected) {
         groupElement
           .append("rect")
-          .attr("x", group.bounds.x - 2)
-          .attr("y", group.bounds.y - 2)
-          .attr("width", group.bounds.width + 4)
-          .attr("height", group.bounds.height + 4)
+          .attr("x", group.bounds.x)
+          .attr("y", group.bounds.y)
+          .attr("width", group.bounds.width)
+          .attr("height", group.bounds.height)
           .attr("fill", "none")
           .attr("stroke", "#2196f3")
           .attr("stroke-width", 2);
@@ -203,11 +209,15 @@ const InteractiveD3ChartWithNumbers = () => {
     const generatedDots = [];
     const rowLabels = [];
 
+    // Apply stretch factor immediately when generating dots
+    const stretchedSpacing = baseDotSpacing * stretchFactor;
+
+    // Loop through rows and columns
     for (let i = 0; i < rowCount; i++) {
       for (let j = 0; j < colCount; j++) {
         generatedDots.push({
-          cx: selection.x + j * baseDotSpacing,
-          cy: selection.y + i * baseDotSpacing,
+          cx: selection.x + j * stretchedSpacing,
+          cy: selection.y + i * stretchedSpacing,
           row: i,
           col: j
         });
@@ -216,10 +226,15 @@ const InteractiveD3ChartWithNumbers = () => {
       rowLabels.push({
         label: `Row ${i + 1}`,
         x: selection.x - 40,
-        y: selection.y + i * baseDotSpacing,
+        y: selection.y + i * stretchedSpacing,
       });
     }
 
+    // Update the group's bounds with the stretched width and height
+    const newWidth = (colCount - 1) * stretchedSpacing;
+    const newHeight = (rowCount - 1) * stretchedSpacing;
+
+    // Set the new dot group with the updated stretch factor
     setDotGroups((prev) => [
       ...prev,
       {
@@ -229,16 +244,17 @@ const InteractiveD3ChartWithNumbers = () => {
         bounds: {
           x: selection.x,
           y: selection.y,
-          width: selection.width,
-          height: selection.height,
+          width: newWidth,
+          height: newHeight,
         },
         rotation: 0,
-        stretchFactor: 1,
+        stretchFactor: stretchFactor,  // Apply stretch factor to the group
         columns: colCount
       },
     ]);
     setCurrentGroupId((prev) => prev + 1);
   };
+
 
   const deleteDots = (selection) => {
     setDotGroups((prev) =>
@@ -480,7 +496,7 @@ const InteractiveD3ChartWithNumbers = () => {
         <input
           type="range"
           min="0"
-          max="100"
+          max="200"
           value={curveDegree}
           onChange={(e) => handleCurve(e.target.value)}
           className="w-48"
