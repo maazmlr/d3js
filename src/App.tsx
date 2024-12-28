@@ -1,16 +1,16 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+
+import InteractiveD3ChartWithNumbers from "./Abc";
 import "./App.css";
-import DynamicD3Chart from "./Cart";
+import DynamicD3Chart from "./Test.";
+import InteractiveD3ChartWith from "./Tes2";
 
 function App() {
-  const [count, setCount] = useState(0);
 
   return (
     <>
-      <p>yello</p>
       <DynamicD3Chart />
+      {/* <InteractiveD3ChartWithNumbers />
+      <InteractiveD3ChartWith /> */}
     </>
   );
 }

@@ -8,30 +8,25 @@ const InteractiveD3ChartWithNumbers = () => {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [currentGroupId, setCurrentGroupId] = useState(0);
   const [rotationDegree, setRotationDegree] = useState(0);
+  const [stretchFactor, setStretchFactor] = useState(1);
+  const [curveDegree, setCurveDegree] = useState(0);
+
+
+  const baseDotSpacing = 30;
 
   const isPointInRotatedRect = (point, rect, angle) => {
     const centerX = rect.x + rect.width / 2;
     const centerY = rect.y + rect.height / 2;
-
-    // Translate point to origin
     const translatedX = point[0] - centerX;
     const translatedY = point[1] - centerY;
-
-    // Rotate point around origin
     const angleRad = (angle * Math.PI) / 180;
     const rotatedX = translatedX * Math.cos(angleRad) + translatedY * Math.sin(angleRad);
     const rotatedY = -translatedX * Math.sin(angleRad) + translatedY * Math.cos(angleRad);
-
-    // Translate back
-    const finalX = rotatedX + centerX;
-    const finalY = rotatedY + centerY;
-
-    // Check if point is inside rectangle
     return (
-      finalX >= rect.x &&
-      finalX <= rect.x + rect.width &&
-      finalY >= rect.y &&
-      finalY <= rect.y + rect.height
+      rotatedX + centerX >= rect.x &&
+      rotatedX + centerX <= rect.x + rect.width &&
+      rotatedY + centerY >= rect.y &&
+      rotatedY + centerY <= rect.y + rect.height
     );
   };
 
@@ -46,7 +41,6 @@ const InteractiveD3ChartWithNumbers = () => {
     svg.selectAll("*").remove();
 
     let selection = null;
-    const dotSpacing = 30;
 
     const dragBehavior = d3
       .drag()
@@ -73,8 +67,8 @@ const InteractiveD3ChartWithNumbers = () => {
           .attr("height", selection.height)
           .style("fill", "rgba(100, 150, 255, 0.3)");
 
-        const rowCount = Math.floor(selection.height / dotSpacing);
-        const colCount = Math.floor(selection.width / dotSpacing);
+        const rowCount = Math.floor(selection.height / baseDotSpacing);
+        const colCount = Math.floor(selection.width / baseDotSpacing);
 
         svg
           .select(".dimension-text")
@@ -86,8 +80,8 @@ const InteractiveD3ChartWithNumbers = () => {
         if (mode === "select" || !selection) return;
 
         if (mode === "add") {
-          const rowCount = Math.floor(selection.height / dotSpacing);
-          const colCount = Math.floor(selection.width / dotSpacing);
+          const rowCount = Math.floor(selection.height / baseDotSpacing);
+          const colCount = Math.floor(selection.width / baseDotSpacing);
           generateDots(selection, rowCount, colCount);
         } else if (mode === "delete") {
           deleteDots(selection);
@@ -111,6 +105,7 @@ const InteractiveD3ChartWithNumbers = () => {
       if (clickedGroup) {
         setSelectedGroup(clickedGroup.id);
         setRotationDegree(clickedGroup.rotation || 0);
+        setStretchFactor(clickedGroup.stretchFactor || 1);
       } else {
         setSelectedGroup(null);
       }
@@ -119,6 +114,8 @@ const InteractiveD3ChartWithNumbers = () => {
     dotGroups.forEach((group) => {
       const isSelected = group.id === selectedGroup;
       const rotation = group.rotation || 0;
+      const spacing = baseDotSpacing * (group.stretchFactor || 1);
+      const curve = group.curve || 0;
 
       // Calculate center point of the group
       const centerX = group.bounds.x + group.bounds.width / 2;
@@ -142,31 +139,45 @@ const InteractiveD3ChartWithNumbers = () => {
           .attr("stroke-width", 2);
       }
 
-      // Draw dots and numbers
+      // Apply theater-style curve transformation to dots
       group.dots.forEach((d, i) => {
+        const rowProgress = d.row / (group.bounds.height / spacing);
+        const colProgress = (d.cx - group.bounds.x) / group.bounds.width - 0.5; // -0.5 to 0.5
+
+        // Calculate curve offset based on both row and column position
+        const curveOffset = Math.pow(colProgress * 2, 2) * curve * rowProgress;
+
+        const curvedX = d.cx;
+        const curvedY = d.cy + curveOffset;
+
         groupElement
           .append("circle")
-          .attr("cx", d.cx)
-          .attr("cy", d.cy)
+          .attr("cx", curvedX)
+          .attr("cy", curvedY)
           .attr("r", 10)
           .attr("fill", isSelected ? "#2196f3" : "#4caf50");
 
         groupElement
           .append("text")
-          .attr("x", d.cx)
-          .attr("y", d.cy + 4)
+          .attr("x", curvedX)
+          .attr("y", curvedY + 4)
           .text(i + 1)
           .style("fill", "#fff")
           .style("font-size", "10px")
           .style("text-anchor", "middle");
       });
 
-      // Draw labels
+      // Update labels position with curve
       group.labels.forEach((label) => {
+        const rowIndex = parseInt(label.label.split(" ")[1]) - 1;
+        const rowProgress = rowIndex / (group.bounds.height / spacing);
+        const colProgress = -0.5; // Labels are on the left side
+        const curveOffset = Math.pow(colProgress * 2, 2) * curve * rowProgress;
+
         groupElement
           .append("text")
           .attr("x", label.x)
-          .attr("y", label.y)
+          .attr("y", label.y + curveOffset)
           .text(label.label)
           .style("fill", "#333")
           .style("font-size", "12px")
@@ -176,25 +187,24 @@ const InteractiveD3ChartWithNumbers = () => {
     });
   }, [dotGroups, mode, selectedGroup]);
 
-  // Rest of the component remains the same...
-
   const generateDots = (selection, rowCount, colCount) => {
-    const dotSpacing = 30;
     const generatedDots = [];
     const rowLabels = [];
 
     for (let i = 0; i < rowCount; i++) {
       for (let j = 0; j < colCount; j++) {
         generatedDots.push({
-          cx: selection.x + j * dotSpacing,
-          cy: selection.y + i * dotSpacing,
+          cx: selection.x + j * baseDotSpacing,
+          cy: selection.y + i * baseDotSpacing,
+          row: i,
+          col: j
         });
       }
 
       rowLabels.push({
         label: `Row ${i + 1}`,
         x: selection.x - 40,
-        y: selection.y + i * dotSpacing,
+        y: selection.y + i * baseDotSpacing,
       });
     }
 
@@ -210,7 +220,9 @@ const InteractiveD3ChartWithNumbers = () => {
           width: selection.width,
           height: selection.height,
         },
-        rotation: 0
+        rotation: 0,
+        stretchFactor: 1,
+        columns: colCount
       },
     ]);
     setCurrentGroupId((prev) => prev + 1);
@@ -234,47 +246,6 @@ const InteractiveD3ChartWithNumbers = () => {
         .filter((group) => group.dots.length > 0)
     );
   };
-
-  const alignSelected = (alignment) => {
-    if (selectedGroup === null) return;
-
-    setDotGroups((prev) =>
-      prev.map((group) => {
-        if (group.id !== selectedGroup) return group;
-
-        const dots = [...group.dots];
-        const bounds = group.bounds;
-
-        const rowGroups = {};
-        dots.forEach((dot) => {
-          const key = dot.cy;
-          if (!rowGroups[key]) rowGroups[key] = [];
-          rowGroups[key].push(dot);
-        });
-
-        const newDots = [];
-        Object.entries(rowGroups).forEach(([y, rowDots]) => {
-          const sortedDots = rowDots.sort((a, b) => a.cx - b.cx);
-          const rowWidth = (sortedDots.length - 1) * 30;
-
-          sortedDots.forEach((dot, index) => {
-            let newX;
-            if (alignment === "center") {
-              newX = bounds.x + (bounds.width - rowWidth) / 2 + index * 30;
-            } else if (alignment === "right") {
-              newX = bounds.x + bounds.width - rowWidth + index * 30;
-            } else {
-              newX = bounds.x + index * 30;
-            }
-            newDots.push({ ...dot, cx: newX });
-          });
-        });
-
-        return { ...group, dots: newDots };
-      })
-    );
-  };
-
   const handleRotate = () => {
     if (selectedGroup === null) return;
 
@@ -285,22 +256,113 @@ const InteractiveD3ChartWithNumbers = () => {
           : group
       )
     );
-
   };
+  const alignSelected = (alignment) => {
+    if (selectedGroup === null) return;
 
+    setDotGroups((prev) =>
+      prev.map((group) => {
+        if (group.id !== selectedGroup) return group;
+
+        const dots = [...group.dots];
+        const bounds = group.bounds;
+        const spacing = baseDotSpacing * (group.stretchFactor || 1);
+
+        // Group dots by row
+        const rowGroups = {};
+        dots.forEach((dot) => {
+          if (!rowGroups[dot.row]) rowGroups[dot.row] = [];
+          rowGroups[dot.row].push(dot);
+        });
+
+        const newDots = [];
+        Object.entries(rowGroups).forEach(([row, rowDots]) => {
+          const sortedDots = rowDots.sort((a, b) => a.col - b.col);
+          const rowWidth = (sortedDots.length - 1) * spacing;
+
+          sortedDots.forEach((dot, index) => {
+            let newX;
+            switch (alignment) {
+              case "center":
+                newX = bounds.x + (bounds.width / 2) - (rowWidth / 2) + (index * spacing);
+                break;
+              case "right":
+                newX = bounds.x + bounds.width - rowWidth + (index * spacing);
+                break;
+              default:
+                newX = bounds.x + (index * spacing);
+            }
+
+            newDots.push({
+              ...dot,
+              cx: newX,
+              cy: bounds.y + (parseInt(row) * spacing),
+              originalCol: index
+            });
+          });
+        });
+
+        return {
+          ...group,
+          dots: newDots,
+          alignment: alignment
+        };
+      })
+    );
+  };
 
   const handleStretch = (value) => {
     const newStretchFactor = parseFloat(value);
     setStretchFactor(newStretchFactor);
 
     setDotGroups((prev) =>
+      prev.map((group) => {
+        if (group.id !== selectedGroup) return group;
+
+        const spacing = baseDotSpacing * newStretchFactor;
+        const dots = group.dots.map((dot) => {
+          // Keep the current cx position relative to the group bounds
+          const relativeX = dot.cx - group.bounds.x;
+          const normalizedX = relativeX / (baseDotSpacing * (group.stretchFactor || 1));
+
+          return {
+            ...dot,
+            cx: group.bounds.x + normalizedX * spacing,
+            cy: group.bounds.y + dot.row * spacing,
+          };
+        });
+
+        const labels = group.labels.map((label, rowIndex) => ({
+          ...label,
+          y: group.bounds.y + rowIndex * spacing,
+        }));
+
+        return {
+          ...group,
+          dots: dots,
+          labels: labels,
+          stretchFactor: newStretchFactor,
+        };
+      })
+    );
+  };
+
+
+  const handleCurve = (value) => {
+    const newCurveDegree = parseInt(value);
+    setCurveDegree(newCurveDegree);
+
+    setDotGroups((prev) =>
       prev.map((group) =>
         group.id === selectedGroup
-          ? { ...group, stretchFactor: newStretchFactor }
+          ? { ...group, curve: newCurveDegree }
           : group
       )
     );
   };
+
+
+
   return (
     <div className="w-full max-w-4xl">
       <div className="flex gap-2 mb-4">
@@ -375,9 +437,38 @@ const InteractiveD3ChartWithNumbers = () => {
         </button>
       </div>
 
+      <div className="flex gap-2 mb-4 items-center">
+        <span className="text-sm font-medium">Stretch:</span>
+        <input
+          type="range"
+          min="0.5"
+          max="2"
+          step="0.1"
+          value={stretchFactor}
+          onChange={(e) => handleStretch(e.target.value)}
+          className="w-48"
+          disabled={selectedGroup === null}
+        />
+        <span className="text-sm">{stretchFactor.toFixed(1)}x</span>
+      </div>
+
+      <div className="flex gap-2 mb-4 items-center">
+        <span className="text-sm font-medium">Curve:</span>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={curveDegree}
+          onChange={(e) => handleCurve(e.target.value)}
+          className="w-48"
+          disabled={selectedGroup === null}
+        />
+        <span className="text-sm">{curveDegree}</span>
+      </div>
+
       <svg ref={svgRef}></svg>
     </div>
   );
 };
 
-export default InteractiveD3ChartWithNumbers; 
+export default InteractiveD3ChartWithNumbers;
