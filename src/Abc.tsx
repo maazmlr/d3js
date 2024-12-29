@@ -10,6 +10,10 @@ const InteractiveD3ChartWithNumbers = () => {
   const [rotationDegree, setRotationDegree] = useState(0);
   const [stretchFactor, setStretchFactor] = useState(1);
   const [curveDegree, setCurveDegree] = useState(0);
+  console.log(dotGroups);
+
+
+
 
 
   const baseDotSpacing = 30;
@@ -46,18 +50,30 @@ const InteractiveD3ChartWithNumbers = () => {
       .drag()
       .on("start", (event) => {
         if (mode === "select") return;
+
         const [x, y] = d3.pointer(event);
-        selection = { x, y, width: 0, height: 0 };
+
+        // Initialize selection with small default width and height (e.g., 1x1)
+        selection = { x, y, width: 1, height: 1 };
+
         svg.append("rect").attr("class", "selection");
         svg.append("text").attr("class", "dimension-text");
       })
       .on("drag", (event) => {
         if (mode === "select") return;
+
         const [x, y] = d3.pointer(event);
+
+        // Update width and height based on drag position
         selection.width = Math.abs(x - selection.x);
         selection.height = Math.abs(y - selection.y);
+
+        // Correct the position based on the drag direction
         selection.x = x < selection.x ? x : selection.x;
         selection.y = y < selection.y ? y : selection.y;
+
+        // Update the selection box
+        console.log(selection, "selection is ");
 
         svg
           .select(".selection")
@@ -67,6 +83,7 @@ const InteractiveD3ChartWithNumbers = () => {
           .attr("height", selection.height)
           .style("fill", "rgba(100, 150, 255, 0.3)");
 
+        // Update the dimension text
         const rowCount = Math.floor(selection.height / baseDotSpacing);
         const colCount = Math.floor(selection.width / baseDotSpacing);
 
@@ -93,6 +110,7 @@ const InteractiveD3ChartWithNumbers = () => {
       });
 
     svg.call(dragBehavior);
+
 
     svg.on("click", (event) => {
       if (mode !== "select") return;
@@ -130,10 +148,10 @@ const InteractiveD3ChartWithNumbers = () => {
       if (isSelected) {
         groupElement
           .append("rect")
-          .attr("x", group.bounds.x - 2)
-          .attr("y", group.bounds.y - 2)
-          .attr("width", group.bounds.width + 4)
-          .attr("height", group.bounds.height + 4)
+          .attr("x", group.bounds.x)
+          .attr("y", group.bounds.y)
+          .attr("width", group.bounds.width)
+          .attr("height", group.bounds.height)
           .attr("fill", "none")
           .attr("stroke", "#2196f3")
           .attr("stroke-width", 2);
@@ -191,11 +209,15 @@ const InteractiveD3ChartWithNumbers = () => {
     const generatedDots = [];
     const rowLabels = [];
 
+    // Apply stretch factor immediately when generating dots
+    const stretchedSpacing = baseDotSpacing * stretchFactor;
+
+    // Loop through rows and columns
     for (let i = 0; i < rowCount; i++) {
       for (let j = 0; j < colCount; j++) {
         generatedDots.push({
-          cx: selection.x + j * baseDotSpacing,
-          cy: selection.y + i * baseDotSpacing,
+          cx: selection.x + j * stretchedSpacing,
+          cy: selection.y + i * stretchedSpacing,
           row: i,
           col: j
         });
@@ -204,10 +226,15 @@ const InteractiveD3ChartWithNumbers = () => {
       rowLabels.push({
         label: `Row ${i + 1}`,
         x: selection.x - 40,
-        y: selection.y + i * baseDotSpacing,
+        y: selection.y + i * stretchedSpacing,
       });
     }
 
+    // Update the group's bounds with the stretched width and height
+    const newWidth = (colCount - 1) * stretchedSpacing;
+    const newHeight = (rowCount - 1) * stretchedSpacing;
+
+    // Set the new dot group with the updated stretch factor
     setDotGroups((prev) => [
       ...prev,
       {
@@ -217,16 +244,17 @@ const InteractiveD3ChartWithNumbers = () => {
         bounds: {
           x: selection.x,
           y: selection.y,
-          width: selection.width,
-          height: selection.height,
+          width: newWidth,
+          height: newHeight,
         },
         rotation: 0,
-        stretchFactor: 1,
+        stretchFactor: stretchFactor,  // Apply stretch factor to the group
         columns: colCount
       },
     ]);
     setCurrentGroupId((prev) => prev + 1);
   };
+
 
   const deleteDots = (selection) => {
     setDotGroups((prev) =>
@@ -320,8 +348,13 @@ const InteractiveD3ChartWithNumbers = () => {
         if (group.id !== selectedGroup) return group;
 
         const spacing = baseDotSpacing * newStretchFactor;
+
+        // Update the bounds of the group to reflect the stretched size
+        const newWidth = (group.columns - 1) * spacing;
+        const newHeight = (group.dots.length / group.columns) * spacing;
+
+        // Update the dots with new stretched positions
         const dots = group.dots.map((dot) => {
-          // Keep the current cx position relative to the group bounds
           const relativeX = dot.cx - group.bounds.x;
           const normalizedX = relativeX / (baseDotSpacing * (group.stretchFactor || 1));
 
@@ -342,10 +375,16 @@ const InteractiveD3ChartWithNumbers = () => {
           dots: dots,
           labels: labels,
           stretchFactor: newStretchFactor,
+          bounds: {
+            ...group.bounds,
+            width: newWidth,
+            height: newHeight,
+          },
         };
       })
     );
   };
+
 
 
   const handleCurve = (value) => {
@@ -361,7 +400,68 @@ const InteractiveD3ChartWithNumbers = () => {
     );
   };
 
+  const createVenueShape = () => {
+    if (selectedGroup === null) return;
 
+    setDotGroups((prev) =>
+      prev.map((group) => {
+        if (group.id !== selectedGroup) return group;
+
+        const dots = [...group.dots];
+        const bounds = group.bounds;
+        const spacing = baseDotSpacing * (group.stretchFactor || 1);
+
+        // Group dots by row
+        const rowGroups = {};
+        dots.forEach((dot) => {
+          if (!rowGroups[dot.row]) rowGroups[dot.row] = [];
+          rowGroups[dot.row].push(dot);
+        });
+
+        const newDots = [];
+        Object.entries(rowGroups).forEach(([row, rowDots]) => {
+          const sortedDots = rowDots.sort((a, b) => a.col - b.col);
+          const rowHeight = parseInt(row) * spacing;
+          const totalRows = Math.max(...dots.map(d => d.row)) + 1;
+
+          sortedDots.forEach((dot, index) => {
+            const isRightHalf = index >= sortedDots.length / 2;
+
+            if (!isRightHalf) {
+              // Left half - create curved shape
+              const progress = rowHeight / (totalRows * spacing); // 0 to 1
+              const angle = progress * Math.PI; // 0 to π (180 degrees)
+              const radius = bounds.width / 4;
+
+              const x = bounds.x + radius - (Math.cos(angle) * radius);
+              const y = bounds.y + rowHeight;
+
+              newDots.push({
+                ...dot,
+                cx: x,
+                cy: y,
+                row: parseInt(row)
+              });
+            } else {
+              // Right half - keep straight
+              newDots.push({
+                ...dot,
+                cx: bounds.x + (index * spacing),
+                cy: bounds.y + rowHeight,
+                row: parseInt(row)
+              });
+            }
+          });
+        });
+
+        return {
+          ...group,
+          dots: newDots,
+          isVenueShape: true
+        };
+      })
+    );
+  };
 
   return (
     <div className="w-full max-w-4xl">
@@ -457,7 +557,7 @@ const InteractiveD3ChartWithNumbers = () => {
         <input
           type="range"
           min="0"
-          max="100"
+          max="200"
           value={curveDegree}
           onChange={(e) => handleCurve(e.target.value)}
           className="w-48"
@@ -465,6 +565,15 @@ const InteractiveD3ChartWithNumbers = () => {
         />
         <span className="text-sm">{curveDegree}</span>
       </div>
+
+      <button
+        onClick={createVenueShape}
+        className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-orange-500" : "bg-gray-400"}`}
+        disabled={selectedGroup === null}
+      >
+        Left Venue Shape
+      </button>
+
 
       <svg ref={svgRef}></svg>
     </div>
