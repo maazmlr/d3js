@@ -17,6 +17,8 @@ const InteractiveD3ChartWithNumbers = () => {
   const [rotationDegree, setRotationDegree] = useState(0);
   const [stretchFactor, setStretchFactor] = useState(1);
   const [curveIntensity, setCurveIntensity] = useState(0);
+  const [currentZoom, setCurrentZoom] = useState(0.5); // Initial zoom level
+
 
   console.log(dotGroups);
 
@@ -53,6 +55,7 @@ const InteractiveD3ChartWithNumbers = () => {
       .attr("height", 400)
       .style("background", "#e9f5ff")
       .style("cursor", mode === "select" ? "pointer" : "crosshair");
+
 
     svg.selectAll("*").remove();
 
@@ -198,6 +201,9 @@ const InteractiveD3ChartWithNumbers = () => {
     });
   }, [dotGroups, mode, selectedGroup]);
 
+
+
+
   const handleGenerateDots = (selection, rowCount, colCount) => {
     generateDots(
       selection,
@@ -294,9 +300,8 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("add");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${
-            mode === "add" ? "bg-green-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${mode === "add" ? "bg-green-500" : "bg-gray-400"
+            }`}
         >
           Add
         </button>
@@ -305,9 +310,8 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("select");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${
-            mode === "select" ? "bg-blue-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${mode === "select" ? "bg-blue-500" : "bg-gray-400"
+            }`}
         >
           Select
         </button>
@@ -316,9 +320,8 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("delete");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${
-            mode === "delete" ? "bg-red-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${mode === "delete" ? "bg-red-500" : "bg-gray-400"
+            }`}
         >
           Delete
         </button>
@@ -327,27 +330,24 @@ const InteractiveD3ChartWithNumbers = () => {
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => handleAlign("left")}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Left Align
         </button>
         <button
           onClick={() => handleAlign("center")}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Center Align
         </button>
         <button
           onClick={() => handleAlign("right")}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Right Align
@@ -365,9 +365,8 @@ const InteractiveD3ChartWithNumbers = () => {
         />
         <button
           onClick={handleRotateClick}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-purple-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-purple-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Rotate
