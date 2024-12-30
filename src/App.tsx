@@ -1,16 +1,16 @@
 
 import InteractiveD3ChartWithNumbers from "./Abc";
 import "./App.css";
-import DynamicD3Chart from "./Test.";
+// import DynamicD3Chart from "./Test.";
 import InteractiveD3ChartWith from "./Tes2";
 
 function App() {
 
   return (
     <>
-      <DynamicD3Chart />
+      {/* <DynamicD3Chart /> */}
       {/* <InteractiveD3ChartWithNumbers /> */}
-      {/* <InteractiveD3ChartWith /> */}
+      <InteractiveD3ChartWith />
     </>
   );
 }
