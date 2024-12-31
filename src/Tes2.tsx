@@ -23,7 +23,7 @@ const InteractiveD3ChartWithNumbers = () => {
   const baseDotSpacing = 30;
 
   const handleCurveChange = (event) => {
-    const intensity = parseFloat(event.target.value);
+    const intensity = parseFloat(event);
     setCurveIntensity(intensity);
 
     if (selectedGroup !== null) {
@@ -34,18 +34,30 @@ const InteractiveD3ChartWithNumbers = () => {
               // Calculate position in curve using quadratic function
               const normalizedX = (dot.col / (group.columns - 1)) * 2 - 1;
               const curveOffset = intensity * (normalizedX * normalizedX);
+
               return {
                 ...dot,
-                cy: dot.originalY + curveOffset * baseDotSpacing, // Note the + to curve downward
+                cy: dot.originalY + curveOffset * baseDotSpacing, // Adjust y-coordinate for curve
               };
             });
-            return { ...group, dots: updatedDots, curveIntensity: intensity };
+
+            // Update the labels to follow the first column dots
+            const updatedLabels = group.labels.map((label, rowIndex) => {
+              const col1Dot = updatedDots.find((dot) => dot.row === rowIndex && dot.col === 0);
+              return {
+                ...label,
+                y: col1Dot ? col1Dot.cy : label.y, // Bind label y-coordinate to column 1 dot's y-coordinate
+              };
+            });
+
+            return { ...group, dots: updatedDots, labels: updatedLabels, curveIntensity: intensity };
           }
           return group;
         });
       });
     }
   };
+
   useEffect(() => {
     const svg = d3.select(svgRef.current);
     svg
@@ -143,8 +155,8 @@ const InteractiveD3ChartWithNumbers = () => {
       const rotation = group.rightVenue
         ? -10 // Apply -10° if rightVenue is true
         : group.leftVenue
-        ? 190 // Apply 180° if leftVenue is true
-        : group.rotation || 0; // Default rotation
+          ? 190 // Apply 180° if leftVenue is true
+          : group.rotation || 0; // Default rotation
       const spacing = baseDotSpacing * (group.stretchFactor || 1);
 
       // Calculate center point of the group
@@ -301,9 +313,8 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("add");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${
-            mode === "add" ? "bg-green-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${mode === "add" ? "bg-green-500" : "bg-gray-400"
+            }`}
         >
           Add
         </button>
@@ -312,9 +323,8 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("select");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${
-            mode === "select" ? "bg-blue-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${mode === "select" ? "bg-blue-500" : "bg-gray-400"
+            }`}
         >
           Select
         </button>
@@ -323,9 +333,8 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("delete");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${
-            mode === "delete" ? "bg-red-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${mode === "delete" ? "bg-red-500" : "bg-gray-400"
+            }`}
         >
           Delete
         </button>
@@ -334,27 +343,24 @@ const InteractiveD3ChartWithNumbers = () => {
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => handleAlign("left")}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Left Align
         </button>
         <button
           onClick={() => handleAlign("center")}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Center Align
         </button>
         <button
           onClick={() => handleAlign("right")}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Right Align
@@ -372,9 +378,8 @@ const InteractiveD3ChartWithNumbers = () => {
         />
         <button
           onClick={handleRotateClick}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-purple-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-purple-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Rotate
@@ -404,7 +409,7 @@ const InteractiveD3ChartWithNumbers = () => {
           max="2"
           step="0.1"
           value={curveIntensity}
-          onChange={handleCurveChange}
+          onChange={(e) => handleCurveChange(e.target.value)}
           className="w-48"
           disabled={selectedGroup === null}
         />
@@ -423,9 +428,8 @@ const InteractiveD3ChartWithNumbers = () => {
               );
             }
           }}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-orange-500" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-orange-500" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Toggle Left Venue
@@ -444,14 +448,51 @@ const InteractiveD3ChartWithNumbers = () => {
               );
             }
           }}
-          className={`px-4 py-2 text-white ${
-            selectedGroup !== null ? "bg-orange-600" : "bg-gray-400"
-          }`}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-orange-600" : "bg-gray-400"
+            }`}
           disabled={selectedGroup === null}
         >
           Toggle Right Venue
         </button>
       </div>
+
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => {
+            if (selectedGroup !== null) {
+              setDotGroups((prevGroups) =>
+                prevGroups.map((group) => {
+                  if (group.id === selectedGroup) {
+                    const spacing = group.centerVenue ? -20 : 20;
+                    const curve = group.centerVenue ? 0 : 2.0
+                    // Calculate center column indices
+                    const colMid = Math.floor(group.columns / 2);
+                    const updatedDots = group.dots.map((dot) => {
+                      if (dot.col >= colMid) {
+                        handleCurveChange(curve)
+                        return { ...dot, cx: dot.cx + spacing }; // Add 20px gap to the right half
+                      }
+                      return dot; // Keep other dots unchanged
+                    });
+
+                    return {
+                      ...group,
+                      dots: updatedDots,
+                      centerVenue: !group.centerVenue, // Toggle the centerVenue property
+                    };
+                  }
+                  return group;
+                })
+              );
+            }
+          }}
+          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-orange-700" : "bg-gray-400"
+            }`}
+          disabled={selectedGroup === null}
+        >
+          Toggle Center Venue
+        </button>
+      </div>;
 
       <svg ref={svgRef}></svg>
     </div>
