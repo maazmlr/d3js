@@ -17,8 +17,6 @@ const InteractiveD3ChartWithNumbers = () => {
   const [rotationDegree, setRotationDegree] = useState(0);
   const [stretchFactor, setStretchFactor] = useState(1);
   const [curveIntensity, setCurveIntensity] = useState(0);
-  const [currentZoom, setCurrentZoom] = useState(0.5); // Initial zoom level
-
 
   console.log(dotGroups);
 
@@ -55,7 +53,6 @@ const InteractiveD3ChartWithNumbers = () => {
       .attr("height", 400)
       .style("background", "#e9f5ff")
       .style("cursor", mode === "select" ? "pointer" : "crosshair");
-
 
     svg.selectAll("*").remove();
 
@@ -143,7 +140,11 @@ const InteractiveD3ChartWithNumbers = () => {
 
     dotGroups.forEach((group) => {
       const isSelected = group.id === selectedGroup;
-      const rotation = group.rotation || 0;
+      const rotation = group.rightVenue
+        ? -10 // Apply -10° if rightVenue is true
+        : group.leftVenue
+        ? 190 // Apply 180° if leftVenue is true
+        : group.rotation || 0; // Default rotation
       const spacing = baseDotSpacing * (group.stretchFactor || 1);
 
       // Calculate center point of the group
@@ -200,9 +201,6 @@ const InteractiveD3ChartWithNumbers = () => {
       });
     });
   }, [dotGroups, mode, selectedGroup]);
-
-
-
 
   const handleGenerateDots = (selection, rowCount, colCount) => {
     generateDots(
@@ -287,8 +285,11 @@ const InteractiveD3ChartWithNumbers = () => {
         stretchFactor,
         columns: colCount,
         curveIntensity: 0,
+        leftVenue: false, // Add the new property
+        rightVenue: false, // New property
       },
     ]);
+
     setCurrentGroupId((prev) => prev + 1);
   };
 
@@ -300,8 +301,9 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("add");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${mode === "add" ? "bg-green-500" : "bg-gray-400"
-            }`}
+          className={`px-4 py-2 text-white ${
+            mode === "add" ? "bg-green-500" : "bg-gray-400"
+          }`}
         >
           Add
         </button>
@@ -310,8 +312,9 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("select");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${mode === "select" ? "bg-blue-500" : "bg-gray-400"
-            }`}
+          className={`px-4 py-2 text-white ${
+            mode === "select" ? "bg-blue-500" : "bg-gray-400"
+          }`}
         >
           Select
         </button>
@@ -320,8 +323,9 @@ const InteractiveD3ChartWithNumbers = () => {
             setMode("delete");
             setSelectedGroup(null);
           }}
-          className={`px-4 py-2 text-white ${mode === "delete" ? "bg-red-500" : "bg-gray-400"
-            }`}
+          className={`px-4 py-2 text-white ${
+            mode === "delete" ? "bg-red-500" : "bg-gray-400"
+          }`}
         >
           Delete
         </button>
@@ -330,24 +334,27 @@ const InteractiveD3ChartWithNumbers = () => {
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => handleAlign("left")}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-            }`}
+          className={`px-4 py-2 text-white ${
+            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+          }`}
           disabled={selectedGroup === null}
         >
           Left Align
         </button>
         <button
           onClick={() => handleAlign("center")}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-            }`}
+          className={`px-4 py-2 text-white ${
+            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+          }`}
           disabled={selectedGroup === null}
         >
           Center Align
         </button>
         <button
           onClick={() => handleAlign("right")}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-            }`}
+          className={`px-4 py-2 text-white ${
+            selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
+          }`}
           disabled={selectedGroup === null}
         >
           Right Align
@@ -365,8 +372,9 @@ const InteractiveD3ChartWithNumbers = () => {
         />
         <button
           onClick={handleRotateClick}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-purple-500" : "bg-gray-400"
-            }`}
+          className={`px-4 py-2 text-white ${
+            selectedGroup !== null ? "bg-purple-500" : "bg-gray-400"
+          }`}
           disabled={selectedGroup === null}
         >
           Rotate
@@ -401,6 +409,48 @@ const InteractiveD3ChartWithNumbers = () => {
           disabled={selectedGroup === null}
         />
         <span className="text-sm">{curveIntensity.toFixed(1)}</span>
+      </div>
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => {
+            if (selectedGroup !== null) {
+              setDotGroups((prevGroups) =>
+                prevGroups.map((group) =>
+                  group.id === selectedGroup
+                    ? { ...group, leftVenue: !group.leftVenue }
+                    : group
+                )
+              );
+            }
+          }}
+          className={`px-4 py-2 text-white ${
+            selectedGroup !== null ? "bg-orange-500" : "bg-gray-400"
+          }`}
+          disabled={selectedGroup === null}
+        >
+          Toggle Left Venue
+        </button>
+      </div>
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => {
+            if (selectedGroup !== null) {
+              setDotGroups((prevGroups) =>
+                prevGroups.map((group) =>
+                  group.id === selectedGroup
+                    ? { ...group, rightVenue: !group.rightVenue }
+                    : group
+                )
+              );
+            }
+          }}
+          className={`px-4 py-2 text-white ${
+            selectedGroup !== null ? "bg-orange-600" : "bg-gray-400"
+          }`}
+          disabled={selectedGroup === null}
+        >
+          Toggle Right Venue
+        </button>
       </div>
 
       <svg ref={svgRef}></svg>
