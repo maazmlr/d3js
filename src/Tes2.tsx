@@ -7,6 +7,7 @@ import {
   handleStretch,
   isPointInRotatedRect,
 } from "./utils";
+import SectorToolbar from "./Sidebar";
 
 const InteractiveD3ChartWithNumbers = () => {
   const svgRef = useRef();
@@ -17,6 +18,8 @@ const InteractiveD3ChartWithNumbers = () => {
   const [rotationDegree, setRotationDegree] = useState(0);
   const [stretchFactor, setStretchFactor] = useState(1);
   const [curveIntensity, setCurveIntensity] = useState(0);
+  const [alignmentm, setAlignment] = useState("left");
+  const [venueShape, setVenueShape] = useState("")
 
   console.log(dotGroups);
 
@@ -43,14 +46,21 @@ const InteractiveD3ChartWithNumbers = () => {
 
             // Update the labels to follow the first column dots
             const updatedLabels = group.labels.map((label, rowIndex) => {
-              const col1Dot = updatedDots.find((dot) => dot.row === rowIndex && dot.col === 0);
+              const col1Dot = updatedDots.find(
+                (dot) => dot.row === rowIndex && dot.col === 0
+              );
               return {
                 ...label,
                 y: col1Dot ? col1Dot.cy : label.y, // Bind label y-coordinate to column 1 dot's y-coordinate
               };
             });
 
-            return { ...group, dots: updatedDots, labels: updatedLabels, curveIntensity: intensity };
+            return {
+              ...group,
+              dots: updatedDots,
+              labels: updatedLabels,
+              curveIntensity: intensity,
+            };
           }
           return group;
         });
@@ -122,8 +132,11 @@ const InteractiveD3ChartWithNumbers = () => {
           const rowCount = Math.floor(selection.height / baseDotSpacing);
           const colCount = Math.floor(selection.width / baseDotSpacing);
           handleGenerateDots(selection, rowCount, colCount);
+          setMode("select")
         } else if (mode === "delete") {
           deleteDots(selection, setDotGroups);
+          setMode("select")
+
         }
 
         svg.select(".selection").remove();
@@ -142,9 +155,11 @@ const InteractiveD3ChartWithNumbers = () => {
       );
 
       if (clickedGroup) {
+        const venue = clickedGroup.leftVenue ? "left" : clickedGroup.rightVenue ? "right" : clickedGroup.centerVenue ? "center" : ""
         setSelectedGroup(clickedGroup.id);
         setRotationDegree(clickedGroup.rotation || 0);
         setStretchFactor(clickedGroup.stretchFactor || 1);
+        setVenueShape(venue);
       } else {
         setSelectedGroup(null);
       }
@@ -227,8 +242,9 @@ const InteractiveD3ChartWithNumbers = () => {
     );
   };
 
-  const handleRotateClick = () => {
-    handleRotate(selectedGroup, rotationDegree, setDotGroups);
+  const handleRotateClick = (value) => {
+    setRotationDegree(value)
+    handleRotate(value, selectedGroup, setDotGroups);
   };
 
   const handleAlign = (alignment) => {
@@ -299,203 +315,114 @@ const InteractiveD3ChartWithNumbers = () => {
         curveIntensity: 0,
         leftVenue: false, // Add the new property
         rightVenue: false, // New property
+        centerVenue: false,
       },
     ]);
 
     setCurrentGroupId((prev) => prev + 1);
   };
 
+
+
+  const centerVenue = () => {
+    if (selectedGroup !== null) {
+      setDotGroups((prevGroups) =>
+        prevGroups.map((group) => {
+          if (group.id === selectedGroup) {
+            const spacing = group.centerVenue ? -20 : 20;
+            const curve = group.centerVenue ? 0 : 2.0;
+            // Calculate center column indices
+            const colMid = Math.floor(group.columns / 2);
+            const updatedDots = group.dots.map((dot) => {
+              if (dot.col >= colMid) {
+                handleCurveChange(curve);
+                return { ...dot, cx: dot.cx + spacing }; // Add 20px gap to the right half
+              }
+              return dot; // Keep other dots unchanged
+            });
+
+            return {
+              ...group,
+              dots: updatedDots,
+              centerVenue: !group.centerVenue, // Toggle the centerVenue property
+            };
+          }
+          return group;
+        })
+      );
+    }
+  }
+
+  const leftVenue = () => {
+    if (selectedGroup !== null) {
+      setDotGroups((prevGroups) =>
+        prevGroups.map((group) =>
+          group.id === selectedGroup
+            ? { ...group, leftVenue: !group.leftVenue }
+            : group
+        )
+      );
+    }
+  }
+
+  const rightVenue = () => {
+    if (selectedGroup !== null) {
+      setDotGroups((prevGroups) =>
+        prevGroups.map((group) =>
+          group.id === selectedGroup
+            ? { ...group, rightVenue: !group.rightVenue }
+            : group
+        )
+      );
+    }
+  }
+
+
+  const handleVenueShape = (str: string) => {
+    if (selectedGroup == null) {
+      return null
+    }
+    if (str === "center") {
+      setVenueShape("center")
+      centerVenue();
+    }
+    if (str === "right") {
+      setVenueShape("right")
+
+      rightVenue();
+    }
+    if (str === "left") {
+      setVenueShape("left")
+
+      leftVenue()
+    }
+  }
+
+  useEffect(() => {
+    if (selectedGroup !== null) {
+      handleCurveChange(curveIntensity);
+    }
+  }, [curveIntensity, selectedGroup]);
   return (
-    <div className="w-full max-w-4xl">
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => {
-            setMode("add");
-            setSelectedGroup(null);
-          }}
-          className={`px-4 py-2 text-white ${mode === "add" ? "bg-green-500" : "bg-gray-400"
-            }`}
-        >
-          Add
-        </button>
-        <button
-          onClick={() => {
-            setMode("select");
-            setSelectedGroup(null);
-          }}
-          className={`px-4 py-2 text-white ${mode === "select" ? "bg-blue-500" : "bg-gray-400"
-            }`}
-        >
-          Select
-        </button>
-        <button
-          onClick={() => {
-            setMode("delete");
-            setSelectedGroup(null);
-          }}
-          className={`px-4 py-2 text-white ${mode === "delete" ? "bg-red-500" : "bg-gray-400"
-            }`}
-        >
-          Delete
-        </button>
-      </div>
+    <div className="flex">
+      <SectorToolbar
+        handleAlign={handleAlign}
+        curveIntensity={curveIntensity}
+        handleCurveChange={handleCurveChange}
+        handleRotateClick={handleRotateClick}
+        rotationDegree={rotationDegree}
+        handleStretchChange={handleStretchChange}
+        stretchFactor={stretchFactor}
+        clickCenterVenue={handleVenueShape}
+        venue={venueShape}
+        setMode={setMode}
 
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => handleAlign("left")}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-            }`}
-          disabled={selectedGroup === null}
-        >
-          Left Align
-        </button>
-        <button
-          onClick={() => handleAlign("center")}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-            }`}
-          disabled={selectedGroup === null}
-        >
-          Center Align
-        </button>
-        <button
-          onClick={() => handleAlign("right")}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-blue-500" : "bg-gray-400"
-            }`}
-          disabled={selectedGroup === null}
-        >
-          Right Align
-        </button>
-      </div>
+      />
 
-      <div className="flex gap-2 mb-4">
-        <input
-          type="number"
-          value={rotationDegree}
-          onChange={(e) => setRotationDegree(e.target.value)}
-          placeholder="Enter rotation degree"
-          className="px-4 py-2 border rounded"
-          disabled={selectedGroup === null}
-        />
-        <button
-          onClick={handleRotateClick}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-purple-500" : "bg-gray-400"
-            }`}
-          disabled={selectedGroup === null}
-        >
-          Rotate
-        </button>
-      </div>
 
-      <div className="flex gap-2 mb-4 items-center">
-        <span className="text-sm font-medium">Stretch:</span>
-        <input
-          type="range"
-          min="0.5"
-          max="2"
-          step="0.1"
-          value={stretchFactor}
-          onChange={handleStretchChange}
-          className="w-48"
-          disabled={selectedGroup === null}
-        />
-        <span className="text-sm">{stretchFactor.toFixed(1)}x</span>
-      </div>
-
-      <div className="flex gap-2 mb-4 items-center">
-        <span className="text-sm font-medium">Curve:</span>
-        <input
-          type="range"
-          min="-2"
-          max="2"
-          step="0.1"
-          value={curveIntensity}
-          onChange={(e) => handleCurveChange(e.target.value)}
-          className="w-48"
-          disabled={selectedGroup === null}
-        />
-        <span className="text-sm">{curveIntensity.toFixed(1)}</span>
-      </div>
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => {
-            if (selectedGroup !== null) {
-              setDotGroups((prevGroups) =>
-                prevGroups.map((group) =>
-                  group.id === selectedGroup
-                    ? { ...group, leftVenue: !group.leftVenue }
-                    : group
-                )
-              );
-            }
-          }}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-orange-500" : "bg-gray-400"
-            }`}
-          disabled={selectedGroup === null}
-        >
-          Toggle Left Venue
-        </button>
-      </div>
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => {
-            if (selectedGroup !== null) {
-              setDotGroups((prevGroups) =>
-                prevGroups.map((group) =>
-                  group.id === selectedGroup
-                    ? { ...group, rightVenue: !group.rightVenue }
-                    : group
-                )
-              );
-            }
-          }}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-orange-600" : "bg-gray-400"
-            }`}
-          disabled={selectedGroup === null}
-        >
-          Toggle Right Venue
-        </button>
-      </div>
-
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => {
-            if (selectedGroup !== null) {
-              setDotGroups((prevGroups) =>
-                prevGroups.map((group) => {
-                  if (group.id === selectedGroup) {
-                    const spacing = group.centerVenue ? -20 : 20;
-                    const curve = group.centerVenue ? 0 : 2.0
-                    // Calculate center column indices
-                    const colMid = Math.floor(group.columns / 2);
-                    const updatedDots = group.dots.map((dot) => {
-                      if (dot.col >= colMid) {
-                        handleCurveChange(curve)
-                        return { ...dot, cx: dot.cx + spacing }; // Add 20px gap to the right half
-                      }
-                      return dot; // Keep other dots unchanged
-                    });
-
-                    return {
-                      ...group,
-                      dots: updatedDots,
-                      centerVenue: !group.centerVenue, // Toggle the centerVenue property
-                    };
-                  }
-                  return group;
-                })
-              );
-            }
-          }}
-          className={`px-4 py-2 text-white ${selectedGroup !== null ? "bg-orange-700" : "bg-gray-400"
-            }`}
-          disabled={selectedGroup === null}
-        >
-          Toggle Center Venue
-        </button>
-      </div>;
-
-      <svg ref={svgRef}></svg>
-    </div>
+      <div className="flex-1">
+        <svg ref={svgRef} className="w-full h-full"></svg>
+      </div>    </div>
   );
 };
 

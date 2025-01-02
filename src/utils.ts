@@ -37,9 +37,14 @@ export const deleteDots = (selection, setDotGroups) => {
   );
 };
 
-
 // stretchHandler.js
-export const handleStretch = (value, setStretchFactor, setDotGroups, selectedGroup, baseDotSpacing) => {
+export const handleStretch = (
+  value,
+  setStretchFactor,
+  setDotGroups,
+  selectedGroup,
+  baseDotSpacing
+) => {
   const newStretchFactor = parseFloat(value);
   setStretchFactor(newStretchFactor);
 
@@ -56,7 +61,8 @@ export const handleStretch = (value, setStretchFactor, setDotGroups, selectedGro
       // Update the dots with new stretched positions
       const dots = group.dots.map((dot) => {
         const relativeX = dot.cx - group.bounds.x;
-        const normalizedX = relativeX / (baseDotSpacing * (group.stretchFactor || 1));
+        const normalizedX =
+          relativeX / (baseDotSpacing * (group.stretchFactor || 1));
 
         return {
           ...dot,
@@ -85,15 +91,16 @@ export const handleStretch = (value, setStretchFactor, setDotGroups, selectedGro
   );
 };
 
-
 export const isPointInRotatedRect = (point, rect, angle) => {
   const centerX = rect.x + rect.width / 2;
   const centerY = rect.y + rect.height / 2;
   const translatedX = point[0] - centerX;
   const translatedY = point[1] - centerY;
   const angleRad = (angle * Math.PI) / 180;
-  const rotatedX = translatedX * Math.cos(angleRad) + translatedY * Math.sin(angleRad);
-  const rotatedY = -translatedX * Math.sin(angleRad) + translatedY * Math.cos(angleRad);
+  const rotatedX =
+    translatedX * Math.cos(angleRad) + translatedY * Math.sin(angleRad);
+  const rotatedY =
+    -translatedX * Math.sin(angleRad) + translatedY * Math.cos(angleRad);
   return (
     rotatedX + centerX >= rect.x &&
     rotatedX + centerX <= rect.x + rect.width &&
@@ -102,25 +109,26 @@ export const isPointInRotatedRect = (point, rect, angle) => {
   );
 };
 
-
 // rotationHandler.js
-export const handleRotate = (selectedGroup, rotationDegree, setDotGroups) => {
+export const handleRotate = (value, selectedGroup, setDotGroups) => {
   if (selectedGroup === null) return;
 
   setDotGroups((prev) =>
     prev.map((group) =>
       group.id === selectedGroup
-        ? { ...group, rotation: parseInt(rotationDegree) || 0 }
+        ? { ...group, rotation: parseInt(value) || 0 }
         : group
     )
   );
 };
 
-
-
-
 // alignmentHandler.js
-export const alignSelected = (alignment, selectedGroup, setDotGroups, baseDotSpacing) => {
+export const alignSelected = (
+  alignment,
+  selectedGroup,
+  setDotGroups,
+  baseDotSpacing
+) => {
   if (selectedGroup === null) return;
 
   setDotGroups((prev) =>
@@ -147,20 +155,21 @@ export const alignSelected = (alignment, selectedGroup, setDotGroups, baseDotSpa
           let newX;
           switch (alignment) {
             case "center":
-              newX = bounds.x + (bounds.width / 2) - (rowWidth / 2) + (index * spacing);
+              newX =
+                bounds.x + bounds.width / 2 - rowWidth / 2 + index * spacing;
               break;
             case "right":
-              newX = bounds.x + bounds.width - rowWidth + (index * spacing);
+              newX = bounds.x + bounds.width - rowWidth + index * spacing;
               break;
             default:
-              newX = bounds.x + (index * spacing);
+              newX = bounds.x + index * spacing;
           }
 
           newDots.push({
             ...dot,
             cx: newX,
-            cy: bounds.y + (parseInt(row) * spacing),
-            originalCol: index
+            cy: bounds.y + parseInt(row) * spacing,
+            originalCol: index,
           });
         });
       });
@@ -168,19 +177,23 @@ export const alignSelected = (alignment, selectedGroup, setDotGroups, baseDotSpa
       return {
         ...group,
         dots: newDots,
-        alignment: alignment
+        alignment: alignment,
       };
     })
   );
 };
 
-
-
-
-
-
 // dotGenerationHandler.js
-export const generateDots = (selection, rowCount, colCount, baseDotSpacing, stretchFactor, setDotGroups, setCurrentGroupId,currentGroupId) => {
+export const generateDots = (
+  selection,
+  rowCount,
+  colCount,
+  baseDotSpacing,
+  stretchFactor,
+  setDotGroups,
+  setCurrentGroupId,
+  currentGroupId
+) => {
   const generatedDots = [];
   const rowLabels = [];
 
@@ -194,7 +207,7 @@ export const generateDots = (selection, rowCount, colCount, baseDotSpacing, stre
         cx: selection.x + j * stretchedSpacing,
         cy: selection.y + i * stretchedSpacing,
         row: i,
-        col: j
+        col: j,
       });
     }
 
@@ -223,10 +236,9 @@ export const generateDots = (selection, rowCount, colCount, baseDotSpacing, stre
         height: newHeight,
       },
       rotation: 0,
-      stretchFactor: stretchFactor,  // Apply stretch factor to the group
-      columns: colCount
+      stretchFactor: stretchFactor, // Apply stretch factor to the group
+      columns: colCount,
     },
   ]);
   setCurrentGroupId((prev) => prev + 1);
-
 };
