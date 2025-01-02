@@ -23,7 +23,7 @@ const InteractiveD3ChartWithNumbers = () => {
 
   console.log(dotGroups);
 
-  const baseDotSpacing = 30;
+  const baseDotSpacing = 15;
 
   const handleCurveChange = (event) => {
     const intensity = parseFloat(event);
@@ -70,11 +70,13 @@ const InteractiveD3ChartWithNumbers = () => {
 
   useEffect(() => {
     const svg = d3.select(svgRef.current);
+
     svg
       .attr("width", 800)
       .attr("height", 400)
       .style("background", "#e9f5ff")
       .style("cursor", mode === "select" ? "pointer" : "crosshair");
+    // .call(configZoom(zoomed));
 
     svg.selectAll("*").remove();
 
@@ -155,11 +157,9 @@ const InteractiveD3ChartWithNumbers = () => {
       );
 
       if (clickedGroup) {
-        const venue = clickedGroup.leftVenue ? "left" : clickedGroup.rightVenue ? "right" : clickedGroup.centerVenue ? "center" : ""
         setSelectedGroup(clickedGroup.id);
         setRotationDegree(clickedGroup.rotation || 0);
         setStretchFactor(clickedGroup.stretchFactor || 1);
-        setVenueShape(venue);
       } else {
         setSelectedGroup(null);
       }
@@ -183,7 +183,24 @@ const InteractiveD3ChartWithNumbers = () => {
         .append("g")
         .attr("class", `dot-group-${group.id}`)
         .attr("transform", `rotate(${rotation}, ${centerX}, ${centerY})`);
+      svg.call(
+        d3
+          .zoom()
+          .extent([
+            [0, 0],
+            [400, 400],
+          ])
+          .scaleExtent([1, 8])
+          .translateExtent([
+            [0, 0],
+            [400, 600],
+          ])
+          .on("zoom", zoomed)
+      );
 
+      function zoomed({ transform }) {
+        groupElement.attr("transform", transform);
+      }
       if (isSelected) {
         groupElement
           .append("rect")
@@ -201,16 +218,16 @@ const InteractiveD3ChartWithNumbers = () => {
           .append("circle")
           .attr("cx", d.cx)
           .attr("cy", d.cy)
-          .attr("r", 10)
+          .attr("r", 5)
           .attr("fill", isSelected ? "#2196f3" : "#4caf50");
 
         groupElement
           .append("text")
           .attr("x", d.cx)
-          .attr("y", d.cy + 4)
+          .attr("y", d.cy + 2)
           .text(i + 1)
           .style("fill", "#fff")
-          .style("font-size", "10px")
+          .style("font-size", "2px")
           .style("text-anchor", "middle");
       });
 
@@ -219,12 +236,15 @@ const InteractiveD3ChartWithNumbers = () => {
         groupElement
           .append("text")
           .attr("x", label.x)
-          .attr("y", label.y)
+          .attr("y", label.y + 2)
           .text(label.label)
-          .style("fill", "#333")
-          .style("font-size", "12px")
+          .style("fill", isSelected ? "#000" : "#333")
+          .style("font-size", "8px")
           .style("font-weight", "bold")
-          .style("text-anchor", "end");
+          .style("background", "rgba(255, 255, 255, 0.8)")
+          // .style("padding", "4px")
+          .style("border-radius", "4px")
+          .style("text-anchor", "center");
       });
     });
   }, [dotGroups, mode, selectedGroup]);
@@ -288,7 +308,7 @@ const InteractiveD3ChartWithNumbers = () => {
       }
 
       rowLabels.push({
-        label: `Row ${i + 1}`,
+        label: `R ${i + 1}`,
         x: selection.x - 40,
         y: selection.y + i * stretchedSpacing,
       });
